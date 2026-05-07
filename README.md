@@ -35,8 +35,9 @@ python scripts/cluster_requests.py
 python scripts/score_clusters.py
 python scripts/import_exported_data.py data/reddit_export.jsonl --source-type reddit
 python scripts/import_live_source.py github "godot plugin is:issue"
-python scripts/import_live_source.py discourse "I wish there was a Godot plugin" --base-url https://forum.godotengine.org
+python scripts/import_live_source.py discourse "I wish there was a Godot plugin" --base-url https://forum.godotengine.org --pages 2 --max-retries 3
 python scripts/import_live_source.py stackexchange "Godot plugin tool" --site gamedev
+python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json --once
 python scripts/review_cluster.py 1 accepted --notes "Promising MVP candidate"
 pytest
 ```
@@ -70,6 +71,17 @@ Concrete live adapters are available for:
 - GitHub Issues search via `scripts/import_live_source.py github ...`; set `GITHUB_TOKEN` for higher rate limits
 - Stack Exchange Q&A search via `scripts/import_live_source.py stackexchange ... --site gamedev`
 
+Each live adapter supports source-specific pagination depth, rate limits, retries, and exponential backoff. Use `--pages`, `--requests-per-minute`, `--max-retries`, and `--backoff-seconds`.
+
+Scheduled refresh jobs are local JSON-configured jobs:
+
+```bash
+python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json --once
+python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json
+```
+
+Refresh outcomes are stored in `source_refresh_runs` and shown in the Streamlit dashboard.
+
 Local LLM enrichment is optional and off by default. To enable an Ollama-compatible local endpoint:
 
 ```bash
@@ -83,6 +95,8 @@ python scripts/run_pipeline.py
 
 - Reddit ingestion via exported datasets, plus optional official API adapter.
 - Rate-limited live adapters for Discourse forums, GitHub Issues, and Stack Exchange Q&A.
+- Source-specific pagination depth and retry/backoff policies.
+- Scheduled source refresh jobs with durable run history.
 - Optional local LLM enrichment with heuristic fallback.
 - Exact and embedding-similarity near-duplicate detection.
 - Source credibility scoring.
@@ -91,5 +105,4 @@ python scripts/run_pipeline.py
 ## Remaining TODO
 
 - Add source-specific pagination depth and backoff policies after real target sources are selected.
-- Promote review history into a dedicated dashboard view.
-- Add scheduled source refresh jobs.
+- Add source job editing in the dashboard instead of JSON-only configuration.

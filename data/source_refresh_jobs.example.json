@@ -1,0 +1,27 @@
+{
+  "jobs": [
+    {
+      "name": "github-godot-plugin-requests",
+      "source": "github",
+      "query": "godot plugin request is:issue",
+      "limit": 25,
+      "pages": 1,
+      "interval_minutes": 360,
+      "requests_per_minute": 20,
+      "max_retries": 3,
+      "backoff_seconds": 1.0
+    },
+    {
+      "name": "gamedev-stackexchange-godot-tools",
+      "source": "stackexchange",
+      "site": "gamedev",
+      "query": "Godot tool plugin",
+      "limit": 25,
+      "pages": 1,
+      "interval_minutes": 720,
+      "requests_per_minute": 20,
+      "max_retries": 3,
+      "backoff_seconds": 1.0
+    }
+  ]
+}

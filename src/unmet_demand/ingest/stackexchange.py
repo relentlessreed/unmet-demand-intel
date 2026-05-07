@@ -11,27 +11,40 @@ class StackExchangeAdapter(RateLimitedAdapter):
 
     search_url = "https://api.stackexchange.com/2.3/search/advanced"
 
-    def __init__(self, site: str = "stackoverflow", requests_per_minute: int = 20, session: requests.Session | None = None) -> None:
-        super().__init__(requests_per_minute=requests_per_minute)
+    def __init__(
+        self,
+        site: str = "stackoverflow",
+        requests_per_minute: int = 20,
+        session: requests.Session | None = None,
+        max_retries: int = 3,
+        backoff_seconds: float = 1.0,
+    ) -> None:
+        super().__init__(requests_per_minute=requests_per_minute, max_retries=max_retries, backoff_seconds=backoff_seconds)
         self.site = site
         self.session = session or requests.Session()
 
-    def search(self, query: str, limit: int = 50) -> list[NormalizedPost]:
-        self.wait()
-        response = self.session.get(
-            self.search_url,
-            params={
-                "site": self.site,
-                "q": query,
-                "pagesize": min(limit, 100),
-                "order": "desc",
-                "sort": "activity",
-                "filter": "withbody",
-            },
-            timeout=20,
-        )
-        response.raise_for_status()
-        return self._normalize_items(response.json().get("items", [])[:limit])
+    def search(self, query: str, limit: int = 50, pages: int = 1) -> list[NormalizedPost]:
+        posts: list[NormalizedPost] = []
+        for page in range(1, max(1, pages) + 1):
+            response = self.request_with_backoff(
+                lambda page=page: self.session.get(
+                    self.search_url,
+                    params={
+                        "site": self.site,
+                        "q": query,
+                        "pagesize": min(limit - len(posts), 100),
+                        "page": page,
+                        "order": "desc",
+                        "sort": "activity",
+                        "filter": "withbody",
+                    },
+                    timeout=20,
+                )
+            )
+            posts.extend(self._normalize_items(response.json().get("items", [])))
+            if len(posts) >= limit:
+                break
+        return posts[:limit]
 
     def _normalize_items(self, items: list[dict]) -> list[NormalizedPost]:
         posts: list[NormalizedPost] = []

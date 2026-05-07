@@ -73,6 +73,18 @@ CREATE TABLE IF NOT EXISTS review_events (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(cluster_id) REFERENCES request_clusters(id)
 );
+
+CREATE TABLE IF NOT EXISTS source_refresh_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_name TEXT NOT NULL,
+    source_kind TEXT NOT NULL,
+    query TEXT NOT NULL,
+    status TEXT NOT NULL,
+    records_imported INTEGER NOT NULL DEFAULT 0,
+    error TEXT,
+    started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    finished_at TEXT
+);
 """
 
 
@@ -100,6 +112,16 @@ MIGRATIONS = {
         "notes": "TEXT",
         "summary_snapshot": "TEXT",
         "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+    },
+    "source_refresh_runs": {
+        "job_name": "TEXT NOT NULL DEFAULT 'manual'",
+        "source_kind": "TEXT NOT NULL DEFAULT 'unknown'",
+        "query": "TEXT NOT NULL DEFAULT ''",
+        "status": "TEXT NOT NULL DEFAULT 'unknown'",
+        "records_imported": "INTEGER NOT NULL DEFAULT 0",
+        "error": "TEXT",
+        "started_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+        "finished_at": "TEXT",
     },
 }
 

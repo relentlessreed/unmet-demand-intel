@@ -11,16 +11,32 @@ from unmet_demand.ingest.sources import NormalizedPost, credibility_for
 class DiscourseForumAdapter(RateLimitedAdapter):
     """Live adapter for public Discourse forums using their JSON endpoints."""
 
-    def __init__(self, base_url: str, requests_per_minute: int = 30, session: requests.Session | None = None) -> None:
-        super().__init__(requests_per_minute=requests_per_minute)
+    def __init__(
+        self,
+        base_url: str,
+        requests_per_minute: int = 30,
+        session: requests.Session | None = None,
+        max_retries: int = 3,
+        backoff_seconds: float = 1.0,
+    ) -> None:
+        super().__init__(requests_per_minute=requests_per_minute, max_retries=max_retries, backoff_seconds=backoff_seconds)
         self.base_url = base_url.rstrip("/") + "/"
         self.session = session or requests.Session()
 
-    def search(self, query: str, limit: int = 25) -> list[NormalizedPost]:
-        self.wait()
-        response = self.session.get(urljoin(self.base_url, "search.json"), params={"q": query}, timeout=20)
-        response.raise_for_status()
-        return self._normalize_search_results(response.json(), limit=limit)
+    def search(self, query: str, limit: int = 25, pages: int = 1) -> list[NormalizedPost]:
+        posts: list[NormalizedPost] = []
+        for page in range(1, max(1, pages) + 1):
+            response = self.request_with_backoff(
+                lambda page=page: self.session.get(
+                    urljoin(self.base_url, "search.json"),
+                    params={"q": query, "page": page},
+                    timeout=20,
+                )
+            )
+            posts.extend(self._normalize_search_results(response.json(), limit=limit - len(posts)))
+            if len(posts) >= limit:
+                break
+        return posts[:limit]
 
     def _normalize_search_results(self, payload: dict, limit: int) -> list[NormalizedPost]:
         posts: list[NormalizedPost] = []
