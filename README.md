@@ -38,6 +38,8 @@ python scripts/import_live_source.py github "godot plugin is:issue"
 python scripts/import_live_source.py discourse "I wish there was a Godot plugin" --base-url https://forum.godotengine.org --pages 2 --max-retries 3
 python scripts/import_live_source.py stackexchange "Godot plugin tool" --site gamedev
 python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json --once
+python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json --seed-db
+python scripts/run_refresh_jobs.py --from-db --once
 python scripts/review_cluster.py 1 accepted --notes "Promising MVP candidate"
 pytest
 ```
@@ -78,9 +80,11 @@ Scheduled refresh jobs are local JSON-configured jobs:
 ```bash
 python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json --once
 python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json
+python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json --seed-db
+python scripts/run_refresh_jobs.py --from-db --once
 ```
 
-Refresh outcomes are stored in `source_refresh_runs` and shown in the Streamlit dashboard.
+Refresh jobs can also be created, updated, enabled/disabled, and deleted in the Streamlit dashboard. Jobs are stored in `source_refresh_jobs`; refresh outcomes are stored in `source_refresh_runs`.
 
 Local LLM enrichment is optional and off by default. To enable an Ollama-compatible local endpoint:
 
@@ -97,6 +101,7 @@ python scripts/run_pipeline.py
 - Rate-limited live adapters for Discourse forums, GitHub Issues, and Stack Exchange Q&A.
 - Source-specific pagination depth and retry/backoff policies.
 - Scheduled source refresh jobs with durable run history.
+- Dashboard source job editor backed by SQLite.
 - Optional local LLM enrichment with heuristic fallback.
 - Exact and embedding-similarity near-duplicate detection.
 - Source credibility scoring.
@@ -104,5 +109,4 @@ python scripts/run_pipeline.py
 
 ## Remaining TODO
 
-- Add source-specific pagination depth and backoff policies after real target sources are selected.
-- Add source job editing in the dashboard instead of JSON-only configuration.
+- Add scheduled background execution as a system service or container entrypoint when deployment target is chosen.

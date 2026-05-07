@@ -85,6 +85,24 @@ CREATE TABLE IF NOT EXISTS source_refresh_runs (
     started_at TEXT DEFAULT CURRENT_TIMESTAMP,
     finished_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS source_refresh_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    source TEXT NOT NULL,
+    query TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    limit_count INTEGER NOT NULL DEFAULT 50,
+    pages INTEGER NOT NULL DEFAULT 1,
+    interval_minutes INTEGER NOT NULL DEFAULT 60,
+    base_url TEXT,
+    site TEXT DEFAULT 'stackoverflow',
+    requests_per_minute INTEGER,
+    max_retries INTEGER,
+    backoff_seconds REAL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -122,6 +140,22 @@ MIGRATIONS = {
         "error": "TEXT",
         "started_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
         "finished_at": "TEXT",
+    },
+    "source_refresh_jobs": {
+        "name": "TEXT NOT NULL DEFAULT 'job'",
+        "source": "TEXT NOT NULL DEFAULT 'github'",
+        "query": "TEXT NOT NULL DEFAULT ''",
+        "enabled": "INTEGER NOT NULL DEFAULT 1",
+        "limit_count": "INTEGER NOT NULL DEFAULT 50",
+        "pages": "INTEGER NOT NULL DEFAULT 1",
+        "interval_minutes": "INTEGER NOT NULL DEFAULT 60",
+        "base_url": "TEXT",
+        "site": "TEXT DEFAULT 'stackoverflow'",
+        "requests_per_minute": "INTEGER",
+        "max_retries": "INTEGER",
+        "backoff_seconds": "REAL",
+        "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
     },
 }
 
