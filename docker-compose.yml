@@ -1,0 +1,25 @@
+services:
+  dashboard:
+    build: .
+    environment:
+      UNMET_DEMAND_SERVICE_MODE: dashboard
+      UNMET_DEMAND_DB_PATH: /app/data/unmet_demand.db
+      PORT: 8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - unmet-demand-data:/app/data
+
+  scheduler:
+    build: .
+    environment:
+      UNMET_DEMAND_SERVICE_MODE: scheduler
+      UNMET_DEMAND_DB_PATH: /app/data/unmet_demand.db
+      UNMET_DEMAND_REFRESH_CONFIG: /app/data/source_refresh_jobs.example.json
+      UNMET_DEMAND_SEED_REFRESH_JOBS: "1"
+    volumes:
+      - unmet-demand-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  unmet-demand-data:

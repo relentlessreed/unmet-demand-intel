@@ -1,0 +1,17 @@
+[Unit]
+Description=Unmet Demand Intelligence Streamlit dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/unmet-demand-intel
+Environment=UNMET_DEMAND_SERVICE_MODE=dashboard
+Environment=UNMET_DEMAND_DB_PATH=/opt/unmet-demand-intel/data/unmet_demand.db
+Environment=PORT=8501
+ExecStart=/opt/unmet-demand-intel/.venv/bin/python scripts/service_entrypoint.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

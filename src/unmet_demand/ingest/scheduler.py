@@ -189,8 +189,15 @@ def run_refresh_job(conn: sqlite3.Connection, job: RefreshJob) -> int:
         raise
 
 
-def run_refresh_jobs(conn: sqlite3.Connection, jobs: list[RefreshJob]) -> int:
-    return sum(run_refresh_job(conn, job) for job in jobs)
+def run_refresh_jobs(conn: sqlite3.Connection, jobs: list[RefreshJob], continue_on_error: bool = True) -> int:
+    total = 0
+    for job in jobs:
+        try:
+            total += run_refresh_job(conn, job)
+        except Exception:
+            if not continue_on_error:
+                raise
+    return total
 
 
 def run_forever(conn: sqlite3.Connection, jobs: list[RefreshJob]) -> None:
@@ -199,6 +206,9 @@ def run_forever(conn: sqlite3.Connection, jobs: list[RefreshJob]) -> None:
         now = time.monotonic()
         for job in jobs:
             if now >= next_run[job.name]:
-                run_refresh_job(conn, job)
+                try:
+                    run_refresh_job(conn, job)
+                except Exception as exc:
+                    print(f"Refresh job failed: {job.name}: {exc}")
                 next_run[job.name] = now + job.interval_minutes * 60
         time.sleep(5)

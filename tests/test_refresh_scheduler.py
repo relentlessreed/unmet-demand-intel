@@ -6,6 +6,7 @@ from unmet_demand.ingest.scheduler import (
     delete_refresh_job,
     load_refresh_jobs_from_db,
     record_refresh_run,
+    run_refresh_jobs,
     upsert_refresh_job,
     with_source_policy,
 )
@@ -62,3 +63,21 @@ def test_source_policy_keeps_explicit_overrides():
     assert job.requests_per_minute == 7
     assert job.max_retries == 1
     assert job.backoff_seconds == 0.5
+
+
+def test_run_refresh_jobs_continues_after_failure(tmp_path, monkeypatch):
+    db_path = tmp_path / "test.db"
+    init_db(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    def fail_fetch(_job):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr("unmet_demand.ingest.scheduler.fetch_job_posts", fail_fetch)
+    total = run_refresh_jobs(conn, [RefreshJob(name="bad", source="github", query="godot")])
+
+    assert total == 0
+    row = conn.execute("SELECT status, error FROM source_refresh_runs").fetchone()
+    assert row["status"] == "failed"
+    assert "network down" in row["error"]

@@ -40,6 +40,8 @@ python scripts/import_live_source.py stackexchange "Godot plugin tool" --site ga
 python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json --once
 python scripts/run_refresh_jobs.py --config data/source_refresh_jobs.example.json --seed-db
 python scripts/run_refresh_jobs.py --from-db --once
+UNMET_DEMAND_SERVICE_MODE=scheduler python scripts/service_entrypoint.py
+UNMET_DEMAND_SERVICE_MODE=dashboard python scripts/service_entrypoint.py
 python scripts/review_cluster.py 1 accepted --notes "Promising MVP candidate"
 pytest
 ```
@@ -86,6 +88,31 @@ python scripts/run_refresh_jobs.py --from-db --once
 
 Refresh jobs can also be created, updated, enabled/disabled, and deleted in the Streamlit dashboard. Jobs are stored in `source_refresh_jobs`; refresh outcomes are stored in `source_refresh_runs`.
 
+## Deployment
+
+The same service entrypoint supports dashboard, scheduler, one-shot scheduler, and pipeline modes:
+
+```bash
+UNMET_DEMAND_SERVICE_MODE=dashboard python scripts/service_entrypoint.py
+UNMET_DEMAND_SERVICE_MODE=scheduler python scripts/service_entrypoint.py
+UNMET_DEMAND_SERVICE_MODE=scheduler-once python scripts/service_entrypoint.py
+UNMET_DEMAND_SERVICE_MODE=pipeline python scripts/service_entrypoint.py
+```
+
+For container deployment:
+
+```bash
+docker compose up --build dashboard scheduler
+```
+
+For Linux systemd deployment, use the templates in `deploy/systemd/` after installing the repo at `/opt/unmet-demand-intel`:
+
+```bash
+sudo cp deploy/systemd/unmet-demand-*.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now unmet-demand-dashboard unmet-demand-refresh
+```
+
 Local LLM enrichment is optional and off by default. To enable an Ollama-compatible local endpoint:
 
 ```bash
@@ -101,6 +128,7 @@ python scripts/run_pipeline.py
 - Rate-limited live adapters for Discourse forums, GitHub Issues, and Stack Exchange Q&A.
 - Source-specific pagination depth and retry/backoff policies.
 - Scheduled source refresh jobs with durable run history.
+- Background scheduler entrypoint for systemd and containers.
 - Dashboard source job editor backed by SQLite.
 - Optional local LLM enrichment with heuristic fallback.
 - Exact and embedding-similarity near-duplicate detection.
@@ -109,4 +137,4 @@ python scripts/run_pipeline.py
 
 ## Remaining TODO
 
-- Add scheduled background execution as a system service or container entrypoint when deployment target is chosen.
+- Add auth and deployment hardening before exposing the dashboard publicly.
