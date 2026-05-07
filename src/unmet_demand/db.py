@@ -61,6 +61,18 @@ CREATE TABLE IF NOT EXISTS request_clusters (
     review_notes TEXT,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS review_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cluster_id INTEGER,
+    cluster_label INTEGER,
+    previous_status TEXT,
+    new_status TEXT NOT NULL,
+    notes TEXT,
+    summary_snapshot TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(cluster_id) REFERENCES request_clusters(id)
+);
 """
 
 
@@ -79,6 +91,15 @@ MIGRATIONS = {
         "source_credibility_score": "REAL NOT NULL DEFAULT 3.0",
         "review_status": "TEXT NOT NULL DEFAULT 'unreviewed'",
         "review_notes": "TEXT",
+    },
+    "review_events": {
+        "cluster_id": "INTEGER",
+        "cluster_label": "INTEGER",
+        "previous_status": "TEXT",
+        "new_status": "TEXT NOT NULL DEFAULT 'unreviewed'",
+        "notes": "TEXT",
+        "summary_snapshot": "TEXT",
+        "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
     },
 }
 

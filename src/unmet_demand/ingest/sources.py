@@ -14,6 +14,7 @@ SOURCE_CREDIBILITY = {
     "github": 4.2,
     "forum": 3.3,
     "community_qa": 3.1,
+    "stackexchange": 3.6,
     "sample": 3.0,
 }
 

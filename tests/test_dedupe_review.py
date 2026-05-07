@@ -2,7 +2,7 @@ import sqlite3
 
 from unmet_demand.db import init_db
 from unmet_demand.extract.dedupe import mark_duplicate_requests
-from unmet_demand.review import get_review_counts, update_cluster_review
+from unmet_demand.review import get_review_counts, latest_review_for_label, update_cluster_review
 
 
 def test_mark_duplicate_requests(tmp_path):
@@ -49,3 +49,6 @@ def test_update_cluster_review(tmp_path):
     assert row["review_status"] == "accepted"
     assert row["review_notes"] == "promising"
     assert get_review_counts(conn)["accepted"] == 1
+    event = latest_review_for_label(conn, 1)
+    assert event["previous_status"] == "unreviewed"
+    assert event["new_status"] == "accepted"

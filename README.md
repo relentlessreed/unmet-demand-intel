@@ -34,6 +34,9 @@ python scripts/extract_requests.py
 python scripts/cluster_requests.py
 python scripts/score_clusters.py
 python scripts/import_exported_data.py data/reddit_export.jsonl --source-type reddit
+python scripts/import_live_source.py github "godot plugin is:issue"
+python scripts/import_live_source.py discourse "I wish there was a Godot plugin" --base-url https://forum.godotengine.org
+python scripts/import_live_source.py stackexchange "Godot plugin tool" --site gamedev
 python scripts/review_cluster.py 1 accepted --notes "Promising MVP candidate"
 pytest
 ```
@@ -61,6 +64,12 @@ Supported JSONL fields include `id`, `external_id`, `title`, `body`, `text`, `se
 
 Live Reddit ingestion is available as a small optional adapter in `unmet_demand.ingest.reddit`. Set `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, and `REDDIT_USER_AGENT` to use the official Reddit API.
 
+Concrete live adapters are available for:
+
+- Discourse forums via `scripts/import_live_source.py discourse ... --base-url ...`
+- GitHub Issues search via `scripts/import_live_source.py github ...`; set `GITHUB_TOKEN` for higher rate limits
+- Stack Exchange Q&A search via `scripts/import_live_source.py stackexchange ... --site gamedev`
+
 Local LLM enrichment is optional and off by default. To enable an Ollama-compatible local endpoint:
 
 ```bash
@@ -73,13 +82,14 @@ python scripts/run_pipeline.py
 ## Implemented MVP Features
 
 - Reddit ingestion via exported datasets, plus optional official API adapter.
-- Rate-limited adapter base for future API-backed forums, issue trackers, and Q&A sources.
+- Rate-limited live adapters for Discourse forums, GitHub Issues, and Stack Exchange Q&A.
 - Optional local LLM enrichment with heuristic fallback.
-- Deduplication and source credibility scoring.
-- Human review workflow in Streamlit and `scripts/review_cluster.py`.
+- Exact and embedding-similarity near-duplicate detection.
+- Source credibility scoring.
+- Human review workflow in Streamlit and `scripts/review_cluster.py`, backed by durable review history events.
 
 ## Remaining TODO
 
-- Add concrete live adapters for specific forums, GitHub Issues search, and Q&A exports once target sources are chosen.
-- Add richer near-duplicate detection using embedding similarity.
-- Add durable review history/audit events instead of only storing the current cluster status.
+- Add source-specific pagination depth and backoff policies after real target sources are selected.
+- Promote review history into a dedicated dashboard view.
+- Add scheduled source refresh jobs.

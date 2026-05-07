@@ -5,6 +5,7 @@ import sqlite3
 from collections import Counter
 
 from unmet_demand.extract.local_llm import enrich_cluster_with_local_llm
+from unmet_demand.review import latest_review_for_label
 
 
 def bounded(value: float, low: float = 1.0, high: float = 5.0) -> float:
@@ -102,13 +103,16 @@ def score_clusters(conn: sqlite3.Connection) -> int:
         credibility_adjustment = (source_credibility - 3.0) * 0.08
         opportunity = score_opportunity(frequency_score, avg_emotion, avg_urgency, avg_monetization, feasibility, novelty)
         opportunity = round(bounded(opportunity + credibility_adjustment), 3)
+        latest_review = latest_review_for_label(conn, cluster_id)
+        review_status = latest_review["new_status"] if latest_review else "unreviewed"
+        review_notes = latest_review["notes"] if latest_review else None
         conn.execute(
             """
             INSERT INTO request_clusters
                 (cluster_label, summary, suggested_product_angle, request_count, avg_urgency,
                  avg_emotion, avg_monetization, feasibility_score, novelty_score,
-                 source_credibility_score, opportunity_score, representative_quotes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 source_credibility_score, opportunity_score, representative_quotes, review_status, review_notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 cluster_id,
@@ -123,6 +127,8 @@ def score_clusters(conn: sqlite3.Connection) -> int:
                 source_credibility,
                 opportunity,
                 json.dumps(quotes),
+                review_status,
+                review_notes,
             ),
         )
         written += 1

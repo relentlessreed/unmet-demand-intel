@@ -6,6 +6,7 @@ import sqlite3
 import numpy as np
 
 from unmet_demand.embed.embedder import embed_requests
+from unmet_demand.extract.dedupe import mark_near_duplicate_requests
 
 
 def _load_vectors(rows: list[sqlite3.Row]) -> np.ndarray:
@@ -66,7 +67,8 @@ def cluster_requests(conn: sqlite3.Connection) -> str:
     rows = conn.execute("SELECT * FROM extracted_requests WHERE is_duplicate = 0 ORDER BY id").fetchall()
     if any(row["embedding_json"] is None for row in rows):
         embed_requests(conn)
-        rows = conn.execute("SELECT * FROM extracted_requests ORDER BY id").fetchall()
+    mark_near_duplicate_requests(conn)
+    rows = conn.execute("SELECT * FROM extracted_requests WHERE is_duplicate = 0 ORDER BY id").fetchall()
     vectors = _load_vectors(rows)
     labels, backend = cluster_vectors(vectors)
     for row, label in zip(rows, labels):

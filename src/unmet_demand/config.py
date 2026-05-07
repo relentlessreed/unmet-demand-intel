@@ -33,3 +33,7 @@ def get_local_llm_url() -> str:
 
 def get_local_llm_model() -> str:
     return os.getenv("UNMET_DEMAND_LOCAL_LLM_MODEL", "llama3.2")
+
+
+def get_near_duplicate_threshold() -> float:
+    return float(os.getenv("UNMET_DEMAND_NEAR_DUPLICATE_THRESHOLD", "0.96"))
