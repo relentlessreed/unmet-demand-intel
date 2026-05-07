@@ -33,6 +33,8 @@ The dashboard title is **Unmet Demand Intelligence** and displays top scored clu
 python scripts/extract_requests.py
 python scripts/cluster_requests.py
 python scripts/score_clusters.py
+python scripts/import_exported_data.py data/reddit_export.jsonl --source-type reddit
+python scripts/review_cluster.py 1 accepted --notes "Promising MVP candidate"
 pytest
 ```
 
@@ -44,10 +46,40 @@ The default database path is `data/unmet_demand.db`. Override it with:
 export UNMET_DEMAND_DB_PATH=/path/to/unmet_demand.db
 ```
 
-## TODO
+## Integrations
 
-- TODO: Add Reddit ingestion using the official Reddit API or exported datasets.
-- TODO: Add rate-limited source adapters for forums, issue trackers, and community Q&A.
-- TODO: Add local LLM extraction for richer problem and product-angle summaries.
-- TODO: Add deduplication and source credibility scoring.
-- TODO: Add human review workflow for accepting/rejecting candidate opportunities.
+Exported datasets can be imported without API keys:
+
+```bash
+python scripts/import_exported_data.py path/to/export.jsonl --source-type reddit
+python scripts/import_exported_data.py path/to/export.jsonl --source-type forum
+python scripts/import_exported_data.py path/to/export.jsonl --source-type github
+python scripts/import_exported_data.py path/to/export.jsonl --source-type community_qa
+```
+
+Supported JSONL fields include `id`, `external_id`, `title`, `body`, `text`, `selftext`, `author`, `created_at`, `url`, and `niche`.
+
+Live Reddit ingestion is available as a small optional adapter in `unmet_demand.ingest.reddit`. Set `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, and `REDDIT_USER_AGENT` to use the official Reddit API.
+
+Local LLM enrichment is optional and off by default. To enable an Ollama-compatible local endpoint:
+
+```bash
+export UNMET_DEMAND_USE_LOCAL_LLM=1
+export UNMET_DEMAND_LOCAL_LLM_URL=http://localhost:11434/api/generate
+export UNMET_DEMAND_LOCAL_LLM_MODEL=llama3.2
+python scripts/run_pipeline.py
+```
+
+## Implemented MVP Features
+
+- Reddit ingestion via exported datasets, plus optional official API adapter.
+- Rate-limited adapter base for future API-backed forums, issue trackers, and Q&A sources.
+- Optional local LLM enrichment with heuristic fallback.
+- Deduplication and source credibility scoring.
+- Human review workflow in Streamlit and `scripts/review_cluster.py`.
+
+## Remaining TODO
+
+- Add concrete live adapters for specific forums, GitHub Issues search, and Q&A exports once target sources are chosen.
+- Add richer near-duplicate detection using embedding similarity.
+- Add durable review history/audit events instead of only storing the current cluster status.

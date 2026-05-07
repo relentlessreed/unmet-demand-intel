@@ -21,3 +21,15 @@ def get_embedding_model_name() -> str:
 
 def allow_model_download() -> bool:
     return os.getenv("UNMET_DEMAND_ALLOW_MODEL_DOWNLOAD", "").lower() in {"1", "true", "yes"}
+
+
+def use_local_llm() -> bool:
+    return os.getenv("UNMET_DEMAND_USE_LOCAL_LLM", "").lower() in {"1", "true", "yes"}
+
+
+def get_local_llm_url() -> str:
+    return os.getenv("UNMET_DEMAND_LOCAL_LLM_URL", "http://localhost:11434/api/generate")
+
+
+def get_local_llm_model() -> str:
+    return os.getenv("UNMET_DEMAND_LOCAL_LLM_MODEL", "llama3.2")

@@ -4,6 +4,8 @@ import json
 import sqlite3
 from collections import Counter
 
+from unmet_demand.extract.local_llm import enrich_cluster_with_local_llm
+
 
 def bounded(value: float, low: float = 1.0, high: float = 5.0) -> float:
     return max(low, min(high, value))
@@ -58,9 +60,21 @@ def suggest_product_angle(rows: list[sqlite3.Row]) -> str:
     return "Build a narrow workflow tool that removes the repeated manual step."
 
 
+def source_credibility_for_rows(rows: list[sqlite3.Row]) -> float:
+    return sum(row["source_credibility_score"] or 3.0 for row in rows) / len(rows)
+
+
 def score_clusters(conn: sqlite3.Connection) -> int:
     conn.execute("DELETE FROM request_clusters")
-    rows = conn.execute("SELECT * FROM extracted_requests WHERE cluster_id IS NOT NULL ORDER BY cluster_id, id").fetchall()
+    rows = conn.execute(
+        """
+        SELECT er.*, rp.source_credibility_score
+        FROM extracted_requests er
+        JOIN raw_posts rp ON rp.id = er.raw_post_id
+        WHERE er.cluster_id IS NOT NULL AND er.is_duplicate = 0
+        ORDER BY er.cluster_id, er.id
+        """
+    ).fetchall()
     if not rows:
         conn.commit()
         return 0
@@ -78,26 +92,35 @@ def score_clusters(conn: sqlite3.Connection) -> int:
         summary = summarize_cluster(cluster_rows)
         feasibility = infer_feasibility(summary)
         novelty = infer_novelty(summary)
-        opportunity = score_opportunity(frequency_score, avg_emotion, avg_urgency, avg_monetization, feasibility, novelty)
         quotes = [row["evidence_quote"] for row in cluster_rows[:5]]
+        llm_enrichment = enrich_cluster_with_local_llm(summary, quotes)
+        product_angle = suggest_product_angle(cluster_rows)
+        if llm_enrichment:
+            summary = llm_enrichment["summary"]
+            product_angle = llm_enrichment["suggested_product_angle"]
+        source_credibility = source_credibility_for_rows(cluster_rows)
+        credibility_adjustment = (source_credibility - 3.0) * 0.08
+        opportunity = score_opportunity(frequency_score, avg_emotion, avg_urgency, avg_monetization, feasibility, novelty)
+        opportunity = round(bounded(opportunity + credibility_adjustment), 3)
         conn.execute(
             """
             INSERT INTO request_clusters
                 (cluster_label, summary, suggested_product_angle, request_count, avg_urgency,
                  avg_emotion, avg_monetization, feasibility_score, novelty_score,
-                 opportunity_score, representative_quotes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 source_credibility_score, opportunity_score, representative_quotes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 cluster_id,
                 summary,
-                suggest_product_angle(cluster_rows),
+                product_angle,
                 request_count,
                 avg_urgency,
                 avg_emotion,
                 avg_monetization,
                 feasibility,
                 novelty,
+                source_credibility,
                 opportunity,
                 json.dumps(quotes),
             ),

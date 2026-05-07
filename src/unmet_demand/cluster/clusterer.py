@@ -63,7 +63,7 @@ def cluster_vectors(vectors: np.ndarray) -> tuple[list[int], str]:
 
 
 def cluster_requests(conn: sqlite3.Connection) -> str:
-    rows = conn.execute("SELECT * FROM extracted_requests ORDER BY id").fetchall()
+    rows = conn.execute("SELECT * FROM extracted_requests WHERE is_duplicate = 0 ORDER BY id").fetchall()
     if any(row["embedding_json"] is None for row in rows):
         embed_requests(conn)
         rows = conn.execute("SELECT * FROM extracted_requests ORDER BY id").fetchall()

@@ -5,6 +5,7 @@ import sqlite3
 from dataclasses import dataclass
 
 from unmet_demand.db import reset_pipeline_tables
+from unmet_demand.extract.dedupe import mark_duplicate_requests, normalize_dedupe_text
 from unmet_demand.extract.patterns import (
     EMOTION_TERMS,
     MONETIZATION_TERMS,
@@ -111,8 +112,8 @@ def extract_requests(conn: sqlite3.Connection, clear_existing: bool = True) -> i
                 """
                 INSERT INTO extracted_requests
                     (raw_post_id, problem, desired_solution, niche, urgency_score,
-                     emotion_score, monetization_score, evidence_quote)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     emotion_score, monetization_score, evidence_quote, dedupe_key)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.raw_post_id,
@@ -123,8 +124,10 @@ def extract_requests(conn: sqlite3.Connection, clear_existing: bool = True) -> i
                     item.emotion_score,
                     item.monetization_score,
                     item.evidence_quote,
+                    normalize_dedupe_text(item.problem, item.desired_solution, item.evidence_quote[:120]),
                 ),
             )
             total += 1
     conn.commit()
+    mark_duplicate_requests(conn)
     return total

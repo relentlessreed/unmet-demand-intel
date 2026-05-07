@@ -12,6 +12,7 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 from unmet_demand.db import connect
+from unmet_demand.review import update_cluster_review
 
 
 st.set_page_config(page_title="Unmet Demand Intelligence", layout="wide")
@@ -29,6 +30,12 @@ def load_clusters() -> pd.DataFrame:
             """,
             conn,
         )
+
+
+def save_review(cluster_id: int, status: str, notes: str) -> None:
+    with connect() as conn:
+        update_cluster_review(conn, cluster_id=cluster_id, status=status, notes=notes.strip() or None)
+    load_clusters.clear()
 
 
 clusters = load_clusters()
@@ -50,8 +57,22 @@ for _, cluster in clusters.iterrows():
         metric_cols = st.columns(3)
         metric_cols[0].metric("Avg urgency", f"{cluster['avg_urgency']:.1f}/5")
         metric_cols[1].metric("Avg emotion", f"{cluster['avg_emotion']:.1f}/5")
-        metric_cols[2].metric("Avg monetization", f"{cluster['avg_monetization']:.1f}/5")
+        metric_cols[2].metric("Credibility", f"{cluster['source_credibility_score']:.1f}/5")
 
         st.caption("Representative evidence")
         for quote in json.loads(cluster["representative_quotes"]):
             st.write(f"- {quote}")
+
+        review_cols = st.columns([1, 2, 1])
+        status_options = ["unreviewed", "accepted", "watchlist", "rejected"]
+        current_status = cluster.get("review_status", "unreviewed")
+        status = review_cols[0].selectbox(
+            "Review",
+            status_options,
+            index=status_options.index(current_status) if current_status in status_options else 0,
+            key=f"status-{cluster['id']}",
+        )
+        notes = review_cols[1].text_input("Notes", value=cluster.get("review_notes") or "", key=f"notes-{cluster['id']}")
+        if review_cols[2].button("Save", key=f"save-{cluster['id']}"):
+            save_review(int(cluster["id"]), status, notes)
+            st.rerun()
